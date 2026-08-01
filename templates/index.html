@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgriSense Pro — Intelligent Crop Disease Detection</title>
+  <meta name="description"
+    content="AI-powered plant disease detection and farm management platform for modern farmers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Leaflet Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════ APP SHELL ══════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- SPLASH LOADER (visible while session check runs) -->
+    <div id="splash">
+      <div class="splash-spinner"></div>
+      <div class="splash-text">AgriSense <span>Pro</span></div>
+      <div class="splash-sub">Loading your farm dashboard…</div>
+    </div>
+    <div id="auth-screen" class="auth-screen hidden">
+      <div class="auth-bg">
+        <div class="auth-mesh"></div>
+        <div class="auth-blob blob-1"></div>
+        <div class="auth-blob blob-2"></div>
+        <div class="auth-blob blob-3"></div>
+        <!-- 3D Decor -->
+        <div class="leaf-3d leaf-1">🌿</div>
+        <div class="leaf-3d leaf-2">🍃</div>
+        <div class="leaf-3d leaf-3">🌱</div>
+      </div>
+      <div class="auth-card glass">
+        <div class="auth-logo">
+          <span class="logo-icon">🌿</span>
+          <h1 class="logo-text">AgriSense <span class="accent">Pro</span></h1>
+          <p class="auth-tagline">AI-Powered Crop Disease Intelligence</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab active" onclick="showTab('login')">Login</button>
+          <button id="tab-register" class="auth-tab" onclick="showTab('register')">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+          <div class="field-group">
+            <label>Farmer Name</label>
+            <div class="input-wrap" id="wrap-login-name">
+              <span class="input-icon">👤</span>
+              <input type="text" id="login-name" placeholder="Enter your name" required autocomplete="username" />
+            </div>
+            <span class="field-hint" id="hint-login-name"></span>
+          </div>
+          <div class="field-group">
+            <label>Password</label>
+            <div class="input-wrap" id="wrap-login-pass">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="login-pass" placeholder="Enter your password" required
+                autocomplete="current-password" />
+              <button type="button" class="pw-toggle" onclick="togglePw('login-pass', this)" tabindex="-1">👁</button>
+            </div>
+            <span class="field-hint" id="hint-login-pass"></span>
+          </div>
+          <!-- Rate-limit lockout banner -->
+          <div id="lockout-banner" class="lockout-banner hidden">
+            🔒 Too many failed attempts. Try again in <span id="lockout-timer">—</span>
+          </div>
+          <div id="login-error" class="form-error hidden"></div>
+          <button type="submit" class="btn-primary" id="login-btn">
+            <span class="btn-text">Login</span>
+            <span class="btn-loader hidden"></span>
+          </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+          <div class="fields-grid">
+            <div class="field-group">
+              <label>Full Name</label>
+              <div class="input-wrap" id="wrap-reg-name">
+                <span class="input-icon">👤</span>
+                <input type="text" id="reg-name" placeholder="Farmer Name" required autocomplete="name" />
+              </div>
+              <span class="field-hint" id="hint-reg-name"></span>
+            </div>
+            <div class="field-group">
+              <label>Aadhaar Number</label>
+              <div class="input-wrap" id="wrap-reg-aadhaar">
+                <span class="input-icon">🪪</span>
+                <input type="text" id="reg-aadhaar" placeholder="12-digit Aadhaar" required maxlength="12"
+                  pattern="\d{12}" inputmode="numeric" />
+              </div>
+              <span class="field-hint" id="hint-reg-aadhaar"></span>
+            </div>
+            <div class="field-group">
+              <label>Village</label>
+              <div class="input-wrap" id="wrap-reg-village">
+                <span class="input-icon">🌾</span>
+                <input type="text" id="reg-village" placeholder="Village Name" required />
+              </div>
+              <span class="field-hint" id="hint-reg-village"></span>
+            </div>
+            <div class="field-group">
+              <label>Phone</label>
+              <div class="input-wrap" id="wrap-reg-phone">
+                <span class="input-icon">📞</span>
+                <input type="tel" id="reg-phone" placeholder="10-digit mobile" required inputmode="numeric" />
+              </div>
+              <span class="field-hint" id="hint-reg-phone"></span>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Password</label>
+            <div class="input-wrap" id="wrap-reg-pass">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reg-pass" placeholder="Min 8 chars, letter + number" required
+                autocomplete="new-password" oninput="updatePwStrength(this.value)" />
+              <button type="button" class="pw-toggle" onclick="togglePw('reg-pass', this)" tabindex="-1">👁</button>
+            </div>
+            <span class="field-hint" id="hint-reg-pass"></span>
+            <!-- Password strength meter -->
+            <div class="pw-strength-wrap" id="pw-strength-wrap">
+              <div class="pw-strength-bar">
+                <div class="pw-strength-fill" id="pw-strength-fill"></div>
+              </div>
+              <span class="pw-strength-label" id="pw-strength-label">Enter password</span>
+            </div>
+          </div>
+          <div id="reg-error" class="form-error hidden"></div>
+          <button type="submit" class="btn-primary">🌱 Create Account</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- MAIN APP (after login) -->
+    <div id="main-app" class="main-app hidden">
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">
+            <span class="sidebar-logo-icon">🌿</span>
+            <span class="sidebar-logo-text">AgriSense<span class="accent">Pro</span></span>
+          </div>
+        </div>
+
+        <div class="sidebar-user" id="sidebar-user">
+          <div class="user-avatar">🧑‍🌾</div>
+          <div class="user-info">
+            <span class="user-name" id="user-name-display">Farmer</span>
+            <span class="user-role">Verified Farmer</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#" id="nav-dash" class="nav-item active" data-page="dashboard" onclick="navigate('dashboard', this)">
+            <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="#" id="nav-detect" class="nav-item" data-page="detection" onclick="navigate('detection', this)">
+            <span class="nav-icon">🔬</span><span class="nav-label">Disease Detection</span>
+          </a>
+          <a href="#" id="nav-farm" class="nav-item" data-page="farm" onclick="navigate('farm', this)">
+            <span class="nav-icon">🌾</span><span class="nav-label">Farm Registration</span>
+          </a>
+          <a href="#" id="nav-history" class="nav-item" data-page="history" onclick="navigate('history', this)">
+            <span class="nav-icon">📋</span><span class="nav-label">Detection History</span>
+          </a>
+          <a href="#" id="nav-report" class="nav-item" data-page="report" onclick="navigate('report', this)">
+            <span class="nav-icon">📄</span><span class="nav-label">Reports</span>
+          </a>
+          <a href="#" id="nav-map" class="nav-item" data-page="map" onclick="navigate('map', this)">
+            <span class="nav-icon">🗺️</span><span class="nav-label">Farm Map View</span>
+          </a>
+          <a href="#" id="nav-profile" class="nav-item" data-page="profile" onclick="navigate('profile', this)">
+            <span class="nav-icon">👤</span><span class="nav-label">My Profile</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button id="btn-logout" class="btn-logout" onclick="handleLogout()">
+            <span>🚪</span> Logout
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT AREA -->
+      <main class="content-area" id="content-area">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+          <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+          <div class="topbar-title" id="topbar-title">Dashboard</div>
+          <div class="topbar-right">
+            <span class="topbar-time" id="topbar-time"></span>
+            <div class="topbar-badge">🌿 Live</div>
+          </div>
+        </header>
+
+        <!-- PAGE: DASHBOARD -->
+        <section id="page-dashboard" class="page active">
+          <div class="page-header">
+            <h2>Analytics Dashboard</h2>
+            <p>Your farm intelligence overview</p>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card" id="stat-total">
+              <div class="stat-icon">🔬</div>
+              <div class="stat-info">
+                <span class="stat-value" id="dash-total">—</span>
+                <span class="stat-label">Total Detections</span>
+              </div>
+            </div>
+            <div class="stat-card" id="stat-today">
+              <div class="stat-icon">📅</div>
+              <div class="stat-info">
+                <span class="stat-value" id="dash-today">—</span>
+                <span class="stat-label">Detections Today</span>
+              </div>
+            </div>
+            <div class="stat-card" id="stat-common">
+              <div class="stat-icon">🦠</div>
+              <div class="stat-info">
+                <span class="stat-value" id="dash-common" style="font-size:1rem">—</span>
+                <span class="stat-label">Most Common Disease</span>
+              </div>
+            </div>
+            <div class="stat-card" id="stat-last">
+              <div class="stat-icon">⏱️</div>
+              <div class="stat-info">
+                <span class="stat-value" id="dash-last" style="font-size:1rem">—</span>
+                <span class="stat-label">Last Detected</span>
+              </div>
+            </div>
+          </div>
+          <div class="charts-row">
+            <div class="chart-card glass">
+              <h3>Disease Distribution (Last 30 Days)</h3>
+              <div class="chart-wrap"><canvas id="chart-disease"></canvas></div>
+            </div>
+            <div class="chart-card glass">
+              <h3>Detection Trend (Last 7 Days)</h3>
+              <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Weather Insights Panel -->
+          <div id="weather-insights-wrap" class="weather-insights glass hidden"
+            style="margin-top: 25px; padding: 25px; border-radius: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+              <div>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                  <span id="weather-icon">🌤️</span> Weather-Based Disease Prediction
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Real-time environmental risk
+                  analysis for <span id="weather-farm-name" class="accent">Your Farm</span></p>
+              </div>
+              <div id="weather-risk-badge" class="risk-badge low">LOW RISK</div>
+            </div>
+
+            <div class="weather-grid"
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 25px;">
+              <div class="weather-stat glass" style="padding: 15px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Temperature</div>
+                <div id="weather-temp" style="font-size: 1.5rem; font-weight: 700; margin-top: 5px;">—°C</div>
+              </div>
+              <div class="weather-stat glass" style="padding: 15px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Humidity</div>
+                <div id="weather-hum" style="font-size: 1.5rem; font-weight: 700; margin-top: 5px;">—%</div>
+              </div>
+              <div class="weather-stat glass" style="padding: 15px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Rainfall (1h)</div>
+                <div id="weather-rain" style="font-size: 1.5rem; font-weight: 700; margin-top: 5px;">—mm</div>
+              </div>
+              <div class="weather-stat glass" style="padding: 15px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Wind Speed</div>
+                <div id="weather-wind" style="font-size: 1.5rem; font-weight: 700; margin-top: 5px;">—m/s</div>
+              </div>
+            </div>
+
+            <div class="risk-insight glass"
+              style="padding: 20px; border-left: 5px solid var(--accent); background: rgba(255,255,255,0.03);">
+              <h4 style="margin: 0; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+                💡 Potential AI Insight: <span id="weather-predicted-disease"
+                  style="color: var(--text);">Determining...</span>
+              </h4>
+              <p id="weather-recommendation" style="margin-top: 10px; font-size: 0.95rem; line-height: 1.5;">Select a
+                farm on the map to see localized disease risk and preventive actions.</p>
+            </div>
+          </div>
+
+          <!-- Satellite NDVI Monitoring Panel -->
+          <div id="ndvi-insights-wrap" class="ndvi-insights glass hidden"
+            style="margin-top: 25px; padding: 25px; border-radius: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+              <div>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                  <span id="ndvi-icon">📡</span> Satellite Crop Health Monitoring
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Sentinel-2 NDVI Vegetation
+                  Analysis for <span id="ndvi-farm-name" class="accent">Your Farm</span></p>
+              </div>
+              <div id="ndvi-health-badge" class="health-badge">ANALYZING</div>
+            </div>
+
+            <div class="ndvi-grid"
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+              <div class="ndvi-card glass" style="padding: 20px; text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">NDVI Index</div>
+                <div id="ndvi-value-display"
+                  style="font-size: 2.5rem; font-weight: 800; color: var(--accent); margin: 10px 0;">—</div>
+                <div id="ndvi-date" style="font-size: 0.75rem; color: var(--text-muted);">Last updated: N/A</div>
+              </div>
+
+              <div class="ndvi-card glass" style="padding: 20px;">
+                <h4 style="margin: 0 0 15px; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase;">
+                  Vegetation Quality</h4>
+                <div id="ndvi-interpretation" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">—</div>
+                <div class="ndvi-progress-bg"
+                  style="height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+                  <div id="ndvi-progress-bar"
+                    style="height: 100%; width: 0%; background: var(--accent); transition: width 1s ease;"></div>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">Index range: 0 (Dead) to 1
+                  (Healthy)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAGE: DETECTION -->
+        <section id="page-detection" class="page hidden">
+          <div class="page-header">
+            <h2>Disease Detection</h2>
+            <p>Upload a plant image or describe symptoms for AI diagnosis</p>
+          </div>
+
+          <div class="mode-toggle">
+            <button id="btn-mode-model" class="mode-btn active" onclick="switchMode('model')">
+              🤖 Trained Model (Image)
+            </button>
+            <button id="btn-mode-ai" class="mode-btn" onclick="switchMode('ai')">
+              🧠 AI Expert (Manual)
+            </button>
+            <button id="btn-mode-camera" class="mode-btn" onclick="switchMode('camera')">
+              🎥 Real-time Camera
+            </button>
+          </div>
+
+          <!-- Model Mode -->
+          <div id="detect-model-panel" class="detect-panel glass">
+            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+              ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+              <div class="upload-icon">📷</div>
+              <p>Drag & drop or click to upload a plant image</p>
+              <span class="upload-hint">Supports JPG, PNG, JPEG</span>
+            </div>
+            <input type="file" id="file-input" accept=".jpg,.jpeg,.png" style="display:none"
+              onchange="handleFileSelect(event)" />
+            <div id="image-preview-wrap" class="hidden">
+              <img id="image-preview" class="preview-img" alt="Preview" />
+              <button class="btn-secondary" onclick="clearImage()">✕ Remove</button>
+            </div>
+            <button class="btn-primary" id="btn-detect-model" onclick="runModelDetection()" disabled>
+              <span>🔬 Analyse Crop Image</span>
+            </button>
+          </div>
+
+          <!-- AI Expert Mode -->
+          <div id="detect-ai-panel" class="detect-panel glass hidden">
+            <form onsubmit="runAIDetection(event)">
+              <div class="fields-grid">
+                <div class="field-group">
+                  <label>Leaf Type</label>
+                  <div class="input-wrap">
+                    <span class="input-icon">🍃</span>
+                    <input type="text" id="ai-leaf" placeholder="e.g., Tomato, Wheat" required />
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label>Leaf Colour</label>
+                  <div class="input-wrap">
+                    <span class="input-icon">🎨</span>
+                    <input type="text" id="ai-color" placeholder="e.g., Yellow-brown, Dark spots" required />
+                  </div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label>Symptoms</label>
+                <div class="input-wrap">
+                  <span class="input-icon">📝</span>
+                  <textarea id="ai-symptoms" placeholder="Describe any other visible symptoms..." rows="3"></textarea>
+                </div>
+              </div>
+              <button type="submit" class="btn-primary">🧠 Get AI Diagnosis</button>
+            </form>
+          </div>
+
+          <!-- Camera Mode -->
+          <div id="detect-camera-panel" class="detect-panel glass hidden">
+            <div class="camera-wrap">
+              <img id="webcam-stream" src="" alt="Webcam Feed" class="webcam-img hidden" />
+              <div id="camera-placeholder" class="camera-placeholder">
+                <span class="camera-icon">🎥</span>
+                <p>Ready to start real-time detection</p>
+              </div>
+            </div>
+            <div class="camera-controls">
+              <button id="btn-camera-start" class="btn-primary" onclick="startCamera()">▶ Start Live Detection</button>
+              <button id="btn-camera-stop" class="btn-primary hidden" style="background:#cc0000"
+                onclick="stopCamera()">⏹ Stop Camera</button>
+            </div>
+          </div>
+
+          <!-- Result Panel -->
+          <div id="detect-result" class="result-panel glass hidden">
+            <div class="result-header">
+              <span class="result-badge" id="result-mode-badge">Model</span>
+              <h3 id="result-disease">—</h3>
+              <div class="confidence-bar-wrap" id="confidence-bar-wrap">
+                <span id="result-confidence">0%</span>
+                <div class="confidence-bar">
+                  <div class="confidence-fill" id="confidence-fill"></div>
+                </div>
+              </div>
+            </div>
+            <div class="result-body">
+              <div id="result-images" class="result-images hidden">
+                <div class="image-box">
+                  <label>Original</label>
+                  <img id="result-image" class="result-img" alt="Original" />
+                </div>
+                <div class="image-box">
+                  <label>AI Localization (Unhealthy Parts)</label>
+                  <img id="result-heatmap" class="result-img heatmap-img" alt="Localization Heatmap" />
+                </div>
+              </div>
+              <div class="result-text">
+                <h4>💊 Treatment &amp; Recommendations</h4>
+                <div id="result-treatment" class="treatment-text"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loader -->
+          <div id="detect-loader" class="detect-loader hidden">
+            <div class="spinner"></div>
+            <p id="detect-loader-text">Analysing image…</p>
+          </div>
+        </section>
+
+        <!-- PAGE: FARM REGISTRATION -->
+        <section id="page-farm" class="page hidden">
+          <div class="page-header">
+            <h2>Farm Registration</h2>
+            <p>Register a new farm plot</p>
+          </div>
+          <div class="form-card glass">
+            <form onsubmit="handleFarmRegister(event)">
+              <div class="fields-grid">
+                <div class="field-group">
+                  <label>Crop Type</label>
+                  <div class="input-wrap">
+                    <span class="input-icon">🌾</span>
+                    <input type="text" id="farm-crop" placeholder="e.g., Wheat, Rice, Tomato" required />
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label>Area (Acres)</label>
+                  <div class="input-wrap">
+                    <span class="input-icon">📐</span>
+                    <input type="number" id="farm-area" placeholder="e.g., 2.5" step="0.1" min="0" required />
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label>Soil Type</label>
+                  <div class="input-wrap">
+                    <span class="input-icon">🪨</span>
+                    <input type="text" id="farm-soil" placeholder="e.g., Loam, Clay, Sandy" required />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Farm Location Map -->
+              <div class="field-group" style="margin-top: 20px;">
+                <label>Select Farm Location on Map</label>
+                <div id="farm-reg-map" class="map-container glass"
+                  style="height: 350px; border-radius: 12px; margin-bottom: 10px;"></div>
+                <p class="field-hint">Click on the map to pin your farm's geographic center.</p>
+                <input type="hidden" id="farm-lat" />
+                <input type="hidden" id="farm-lng" />
+              </div>
+
+              <div id="farm-error" class="form-error hidden"></div>
+              <div id="farm-success" class="form-success hidden"></div>
+              <button type="submit" class="btn-primary">🌱 Register Farm</button>
+            </form>
+          </div>
+
+          <div class="section-divider">Your Registered Farms</div>
+          <div id="my-farms-list" class="farms-list"></div>
+        </section>
+
+        <!-- PAGE: HISTORY -->
+        <section id="page-history" class="page hidden">
+          <div class="page-header">
+            <h2>Detection History</h2>
+            <p>Browse and export past detection records</p>
+          </div>
+
+          <div class="filter-bar glass">
+            <div class="input-wrap compact">
+              <span class="input-icon">🔍</span>
+              <input type="text" id="hist-search" placeholder="Search disease…" oninput="loadHistory()" />
+            </div>
+            <select id="hist-mode" class="select-input" onchange="loadHistory()">
+              <option value="all">All Modes</option>
+              <option value="model">Model</option>
+              <option value="ai">AI Expert</option>
+            </select>
+            <input type="date" id="hist-from" class="date-input" onchange="loadHistory()" />
+            <input type="date" id="hist-to" class="date-input" onchange="loadHistory()" />
+            <button class="btn-secondary" onclick="loadHistory()">🔄 Refresh</button>
+            <a href="/api/history/export-pdf" class="btn-secondary" target="_blank">📄 Export PDF</a>
+          </div>
+
+          <div id="history-list" class="history-list"></div>
+        </section>
+
+        <!-- PAGE: REPORT -->
+        <section id="page-report" class="page hidden">
+          <div class="page-header">
+            <h2>Detection Report</h2>
+            <p>Full history report across all detections</p>
+          </div>
+          <div class="report-toolbar">
+            <button id="btn-load-report" class="btn-primary" onclick="loadReport()">📊 Load Report</button>
+          </div>
+          <div id="report-table-wrap" class="table-wrap glass hidden"></div>
+        </section>
+
+        <section id="page-map" class="page hidden">
+          <div class="page-header">
+            <h2>Farm Map View</h2>
+            <p>Geographic visualization of your farm plots and health status</p>
+          </div>
+          <div class="map-view-card glass"
+            style="padding: 15px; height: calc(100vh - 250px); display: flex; flex-direction: column;">
+            <div id="main-farm-map" style="flex: 1; border-radius: 12px; z-index: 1;"></div>
+            <div class="map-legend">
+              <div class="map-legend-item">
+                <span class="legend-dot" style="background: #22c55e;"></span> Healthy
+              </div>
+              <div class="map-legend-item">
+                <span class="legend-dot" style="background: #eab308;"></span> Disease Detected
+              </div>
+              <div class="map-legend-item">
+                <span class="legend-dot" style="background: #ef4444;"></span> High Risk
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAGE: PROFILE -->
+        <section id="page-profile" class="page hidden">
+          <div class="page-header">
+            <h2>My Profile</h2>
+            <p>Manage your account and view stats</p>
+          </div>
+          <div class="profile-grid">
+            <div class="profile-card glass">
+              <div class="profile-header">
+                <div class="profile-avatar">🧑‍🌾</div>
+                <div class="profile-main-info">
+                  <h3 id="prof-name">—</h3>
+                  <span class="user-role">Verified Farmer</span>
+                </div>
+              </div>
+              <div class="profile-details">
+                <div class="detail-item">
+                  <span class="detail-label">Aadhaar (Masked)</span>
+                  <span class="detail-value" id="prof-aadhaar">—</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Village</span>
+                  <span class="detail-value" id="prof-village">—</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Phone</span>
+                  <span class="detail-value" id="prof-phone">—</span>
+                </div>
+              </div>
+              <div class="profile-actions">
+                <button id="btn-update-profile" class="btn-secondary" onclick="openUpdateProfile()">✏️ Update
+                  Profile</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- GLOBAL TOAST -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>

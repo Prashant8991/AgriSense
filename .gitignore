@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+env/
+.venv/
+build/
+dist/
+*.bak
+*.swp
+
+# ML Models (if too large for GitHub - keep if < 100MB)
+plant_disease_model.h5
+*.h5
+
+# Static Uploads (User data)
+static/uploads/*
+!static/uploads/heatmaps/
+static/uploads/heatmaps/*
+
+# System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
